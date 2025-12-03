@@ -1,0 +1,54 @@
+name: Android CI - Choco with Unity Ads
+
+on:
+  push:
+    branches:
+      - main
+      - master
+      - feature/android-unity-ads-choco
+  pull_request:
+    branches:
+      - main
+      - master
+      - feature/android-unity-ads-choco
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Prebuild Android project
+        run: npx expo prebuild --platform android --no-install --non-interactive
+
+      - name: Build Android AAB & APK
+        run: |
+          cd android
+          ./gradlew assembleRelease bundleRelease
+
+      - name: Rename build outputs
+        run: |
+          mkdir -p android/build-artifacts
+          cp android/app/build/outputs/apk/release/app-release.apk android/build-artifacts/choco-dev.apk
+          cp android/app/build/outputs/bundle/release/app-release.aab android/build-artifacts/choco-release.aab
+
+      - name: Upload Android artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: choco-android-build
+          path: android/build-artifacts/*
